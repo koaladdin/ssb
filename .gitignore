@@ -1,0 +1,75 @@
+########################################################################
+# Based on the DIME .gitignore template
+# https://github.com/worldbank/DIMEwiki/tree/master/Topics/GitHub
+########################################################################
+
+#######################
+# Start by ignoring everything
+# Then below explicitly state what not to ignore
+# Safest way to do it since it can otherwise be easy to forget file types
+*
+
+#######################
+# List of files with GitHub functionality anywhere in the repo
+# that we do not want to ignore
+
+# These files include GitHub settings
+!.gitignore
+!.gitattributes
+
+# Keep markdown files used for documentation on GitHub
+!README.md
+!CONTRIBUTING.md
+
+#######################
+# For performance reasons, if a folder is already ignored, then
+# GitHub does not check the content for that folder for matches
+# with additional rules. The line below includes folders in the
+# top folder (but not their content), so that anything matching
+# the rules below will not be ignored.
+!*/
+
+#######################
+# The following file types are code that should always be
+# included no matter where in the repository folder they are
+# located unless you explicitly ignore that folder
+
+# Stata
+!/**/*.do
+!/**/*.ado
+
+# R
+!/**/*.R
+
+# LaTeX
+!/**/*.tex
+
+# pdf
+!/**/*.pdf
+
+# Python
+!/**/*.py
+!/**/*.ipynb
+
+# Matlab
+!/**/*.m
+
+# Markdown
+!/**/*.md
+
+#######################
+# Ignore the (raw) data folder (redundant, I think)
+data/
+
+# Ignore the temp folder
+temp/
+
+#######################
+# Include some additional file formats in any output folder. You might have
+# to change the name of the Output folder to whatever it is called in your
+# project, but we strongly recommend that you only include these files in
+# a subset of the folders where you are certain no private data is ever stored.
+!/**/output/**/*.txt
+!/**/output/**/*.eps
+!/**/output/**/*.png
+!/**/output/**/*.pdf
