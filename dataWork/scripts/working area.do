@@ -9,7 +9,6 @@
     global logs                   "${scripts}/logs"
 
 	global output                 "${dataWork}/output"
-	**CREATE output folder 
 	
 	//use "$analysis/FIES_2015_SSB.dta", clear
 	//use "$analysis/FIES_20152018append_SSB.dta", clear

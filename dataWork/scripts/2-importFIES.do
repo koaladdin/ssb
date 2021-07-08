@@ -113,6 +113,8 @@
   label var popw "Population weight"
 * Destring variables //same as other years
   destring w_prov, replace
+  destring w_shsn, replace
+  destring w_hcn,  replace
 * Create log of all variables //same as other years
   quietly ds, has(type numeric) 
   quietly ds `r(varlist)', not(vallabel)
@@ -126,7 +128,7 @@
 	cap drop lnsequence_no
 	cap drop lnw_prov
 * Merge in identifiers for treatment and control groups
-  merge m:1 w_prov using "$pricedata", generate(prov)
+  merge m:1 w_prov using "$pricedata", generate(mergebyprov)
 * Save analysis data
   save "$analysis/FIES_2009_SSB.dta", replace
 
@@ -192,7 +194,12 @@ di "success5	"
   label var popw "Population weight"
 	di "success8"
 * Destring variables
-  destring w_prov, replace
+  cap destring w_prov, replace
+  cap destring w_mun,  replace
+  cap destring w_bgy,  replace
+  cap destring w_ea,   replace
+  cap destring w_shsn, replace
+  cap destring w_hcn,  replace
 di "success9"
 * Create log of all variables
   quietly ds, has(type numeric) 
@@ -208,7 +215,7 @@ di "success9"
 	cap drop lnw_prov
 	di "success10"
 * Merge in identifiers for treatment and control groups
-  merge m:1 w_prov using "$pricedata", generate(prov)
+  merge m:1 w_prov using "$pricedata", generate(mergebyprov)
 di "success10"	
 * Save analysis data
   save "$analysis/FIES_`i'_SSB.dta", replace
@@ -299,4 +306,28 @@ di "success11"
      
 //twoway (line tssb_share_exp0  tssb_share_exp1 year)
 
+* **********************************************************************
+* 4 - Create appended FIES 2009 to FIES 2018 (for pooled cross section)
+* **********************************************************************
+* Append FIES 2009 to 2018
+  use "$analysis/FIES_2009_SSB.dta", clear
+  append using "$analysis/FIES_2012_SSB.dta", force
+  append using "$analysis/FIES_2015_SSB.dta", force
+  append using "$analysis/FIES_2018_SSB.dta", force
+
+* Drop variables not available in all 4 datasets (not exhaustive)
+  drop w_id_recode-w_no_hh
+  drop z2111_m_less_1-z2171_m_tot_emp
+  drop b4042_tenure_ind-b4053_lot_rent
+  drop b5012_oth_house lnb5012_oth_house
+  drop w_mun-floor
+  
+* Generate variables and save data set 
+  gen   time = (year==2018) if !missing(year)
+  label define post_ssb 0 "Pre-policy" 1 "Post-policy"
+  label values time post_ssb
+  save "$analysis/FIES_20092018append_SSB.dta", replace
+
+  
+  
  

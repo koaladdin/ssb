@@ -9,7 +9,7 @@
 
 
 * **********************************************************************
-* 1 - Pooled OLS
+* 1 - Pooled OLS no covariates - 2015 and 2018
 * **********************************************************************
 
 //DID will deal with selection on unobservables as long as the bias from it is time-invariant, conditional on covariates
@@ -17,9 +17,48 @@
   use "$analysis/FIES_20152018append_SSB.dta", clear
 
 * Run DiD regression with no controls
-regress ssb i.time##i.treat_513, robust
-margins time#treat_513 // EXPECTED INCOME EACH GROUP IN EACH TIME PERIOD
-margins treat_513, dydx(time) // CHANGE IN SSB CONSUMPTION AT  2015 & 2018 IN EACH GROUP
+  eststo clear
+  foreach i in tssb lntssb tssb_share_exp lntssb_share_exp ssb_share_inc lntssb_share_inc {
+	foreach j in treat_513 treat_7 treat_10 treat_1316 { 
+		eststo did`j': regress `i' i.time##i.`j', robust
+		margins time#`j' // expected SSB consumption for each group in each time period
+		margins `j', dydx(time) // change in SSB consumption in 2015 and 2018 for each group
+		esttab using "$output/did.smcl", replace starlevels(* .1 ** .05 *** .01) se ar2 b(a2)     ///
+		  nonumber nobaselevels noomitted nonote interaction(" x ") label
+		}
+	}
+  
+  eststo clear
+  foreach i in tssb lntssb tssb_share_exp lntssb_share_exp ssb_share_inc lntssb_share_inc {
+	foreach j in treat_513 treat_7 treat_10 treat_1316 { 
+		eststo nofe`i'`j': reghdfe `i' i.time##i.`j', noabsorb         vce(robust)  //how to cluster? by time period? by prov?
+		eststo prov`i'`j': reghdfe `i' i.time##i.`j', absorb(w_prov)   vce(robust)
+		eststo urb`i'`j': reghdfe `i' i.time##i.`j', absorb(urb)   vce(robust) 
+		}
+		esttab using "$output/didhdfe.smcl", replace starlevels(* .1 ** .05 *** .01) se ar2 b(a2)     ///
+		  nonumber nobaselevels noomitted nonote interaction(" x ") label 
+	}
+
+/*	
+* Prepare estimates for -estout-
+    estfe  . didnc*, //labels(time "year FE" time#treat "year-treatment FE")
+	return list
+* Run estout/esttab
+	esttab . didnc*, indicate("Length Controls=length" `r(indicate_fe)')
+* Return stored estimates to their previous state
+	estfe  . didnc*, restore
+*/	
+
+* **********************************************************************
+* 2 - Pooled OLS - 2015 and 2019
+* **********************************************************************
+
+  
+* Run DiD regression with parsimonious covariates
+  //remember to use province dummies
+  
+
+* Run DiD regression with many covariates
 
 * Substitutes regression
 

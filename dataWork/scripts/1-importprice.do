@@ -10,7 +10,7 @@
 * 1 - Import, label, and reshape data
 * **********************************************************************
 * Import and relabel price data
-  import delimited /Users/aladdin/Downloads/raw/2M4ACPI1.csv, bindquote(strict) varnames(2) clear
+  import delimited "$raw/2M4ACPI1.csv", bindquote(strict) varnames(2) clear
   foreach v of varlist _all {  //renames variables
 	   local x : variable label `v'
 	   local q_`v'  =strlower(strtoname("`x'"))
@@ -21,7 +21,7 @@
 * 2 - Merge PSGC indicator
 * **********************************************************************
 * Merge PSGC indicator and rename with FIES province indicator 
-  merge 1:1 geolocation using "/Users/aladdin/Downloads/raw/psgc_prov.dta"
+  merge 1:1 geolocation using "$raw/psgc_prov.dta"
   rename psgc w_prov
 
 * Delete regional level price data
