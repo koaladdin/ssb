@@ -1,16 +1,21 @@
 * **********************************************************************
 * Project: SSB tax in the Philippines
 * Created: June 2021
-* Last modified 2021/07/6 by AK
+* Last modified 2021/07/10 by AK
 * Stata v.15.1
 * **********************************************************************
 * Generates variables for SSB and others
 * Creates FIES 2015 and 2018 merged data set for POLS
-* merge PSGC variable 
-* figure out how to include FIES 2009 in the loop
 
 //TO DO:
 **ask emilia if need to recode dummy variables to 0,1 from 1,2. Clyde says no changes in prediction. Just cant use it as dependent variable.
+** place the turning on and off of weights in either config or setup so it is a setting across all do files. 
+
+* Turn sampling weights on and off here -> but have to manually turn off 
+global weightm = "* [aw=rfact]"
+//global weightm = ""
+global weight = "[aw=rfact]"
+//global weight = ""
 
 * **********************************************************************
 * 1 - Generate SSB variables and more compact version of FIES
@@ -27,6 +32,7 @@
   
 * FIES 2009
   use "$FIES2009", clear
+  
 * Rename variables to have same variables  
   rename w_prv w_prov //for FIES 2009
   rename totex ttotex //for FIES 2009
@@ -68,14 +74,16 @@
   rename cloth             tclothfootwear
   rename ndfur             tfurnishing 
   rename trcom             ttransport	
+  
 * Generate variables for SSB and substitutes
-  egen   tssb    = rowtotal(tea cocoa carbd ncarb soda othdr) //for FIES2009
+  egen tssb    = rowtotal(tea cocoa carbd ncarb soda othdr) //for FIES2009
   rename tmilk tmilks 
   egen tdnossb = rowtotal(tmilks cofct botle)
   egen tfruits = rowtotal(frfrt frpre otpre)
   egen tconf   = rowtotal(sugpr icrem)
   egen tsweet  = rowtotal(sugar)
   egen tsubst  = rowtotal(tdnossb tfruits tconf tsweet)
+  
 * Label new variables //same as other years
   label	var	tssb	"Taxable beverage expenditure"
   label	var	tmilks	"Milk expenditure"
@@ -84,37 +92,51 @@
   label	var	tconf	"Confectionary expenditure"
   label	var	tsweet	"Sugar and honey expenditure"
   label	var tsubst	"SSB substitutes expenditure"
+  
 * Keep only necessary variables and drop the rest 
   rename cofct tcoffee
   rename sugar tsugar
   keep   tssb tmilks tdnossb tfruits tconf tsweet tsubst w_regn-rfact sex-ttotex toinc tsugar tcoffee agind tclothfootwear tfurnishing ttransport	pcinc_decile toinc_decile reg_pcdecile //2009
+
+* Generate SSB indicator (dummy indicator) //same as other years
+  gen ssb_stat = (tssb>0) if !missing(tssb)
+	
+* Generate year variable //same as other years
+  gen year = 2009
+  destring year, replace
+  label var year "Year"
+  
+* Generate population weight from household weight  //same as other years
+  gen popw = rfact*fsize
+  label var popw "Population weight"
+  egen rfactsum = total(rfact)
+  
+* Destring variables //same as other years
+  destring w_prov, replace
+  destring w_shsn, replace
+  destring w_hcn,  replace
+    
 * Generate per capita variables, per capita decile totals, and shares of income and expenditure //same as other years
   foreach var in tssb tsubst ttotex toinc {
 	local lbl : variable label `var'
 	gen `var'_pc = `var' / fsize
 	label var `var'_pc         "`lbl' (per capita)"
-	bysort pcinc_decile: egen `var'_total_pc = total(`var'_pc)
-	label var `var'_total_pc   "`lbl' (by per capita income decile)"
-	gen `var'_share_exp = 100*`var' / ttotex
-	label var `var'_share_exp  "`lbl' (share of total expenditure)"
-	gen `var'_share_inc = 100*`var' / toinc
-	label var `var'_share_inc  "`lbl' (share of total income)"
-	//tabstat `var'_pc[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile)
+	bysort pcinc_decile: egen `var'_pc_dc = total(`var'_pc $weight)
+	replace `var'_pc_dc = `var'_pc_dc / rfactsum //turn off if not weighted
+	label var `var'_pc_dc   "`lbl' (by per capita income decile)"
+	gen `var'_exp = 100*`var' / ttotex
+	label var `var'_exp  "`lbl' (share of total expenditure)"
+	gen `var'_inc = 100*`var' / toinc
+	label var `var'_inc  "`lbl' (share of total income)" 
+	}
+  foreach var in tssb tsubst ttotex toinc {
+	gen `var'_exp_d   = 100* `var'_pc_dc/ttotex_pc_dc
+	label var `var'_exp_d "`lbl' (share of total expenditure by income decile)"
+	gen `var'_inc_d  = 100* `var'_pc_dc/toinc_pc_dc
+	label var `var'_inc_d "`lbl'(share of total expenditure by income decile)"
+	//tabstat `var'_pc [aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile)
 	}		
-* Generate SSB indicator (dummy indicator) //same as other years
-  gen ssb_stat = (tssb>0) if !missing(tssb)
-	di "success6"
-* Generate year variable //same as other years
-  gen year = 2009
-  destring year, replace
-  label var year "Year"
-* Generate population weight from household weight  //same as other years
-  gen popw = rfact*fsize
-  label var popw "Population weight"
-* Destring variables //same as other years
-  destring w_prov, replace
-  destring w_shsn, replace
-  destring w_hcn,  replace
+
 * Create log of all variables //same as other years
   quietly ds, has(type numeric) 
   quietly ds `r(varlist)', not(vallabel)
@@ -144,7 +166,7 @@
   local i = 2012 //need this to be outside loop
   foreach a in "$FIES2012" "$FIES2015" "$FIES2018"  {
 	use "`a'", clear
-	di "success1"
+	
 * Generate variables for SSB and substitutes
   egen tssb    = rowtotal(ttea tcocoa tsoftdrink tfruitjuice tfconcentrates tfothernonalcohol) //milk and coffee exempted
   egen tmilks  = rowtotal(tmraw tcondevap tfdessert tmbeverage tmsoya)
@@ -153,7 +175,7 @@
   egen tconf   = rowtotal(tjamsmar tchocolate tice tothersugar tfnecdessert)
   egen tsweet  = rowtotal(tsugar thoney)
   egen tsubst  = rowtotal(tdnossb tfruits tconf tsweet)
-di "success2"
+
 * Label new variables
   label	var	tssb	"Taxable beverage expenditure"
   label	var	tmilks	"Milk expenditure"
@@ -162,37 +184,24 @@ di "success2"
   label	var	tconf	"Confectionary expenditure"
   label	var	tsweet	"Sugar and honey expenditure"
   label	var tsubst	"SSB substitutes expenditure"
-di "success3"
+
 * Keep only necessary variables and drop the rest
-	cap keep   tssb tmilks tdnossb tfruits tconf tsweet tsubst w_regn-pcinc ttotex toinc tsugar thoney tcoffee tmineral agind sex-p4s tclothfootwear tfurnishing ttransport	//2015 and 2018
-	cap keep   w_regn-fsize ttotex toinc pcinc tsugar thoney tcoffee tmineral agind-pov_thresh pov_ind tssb-tsubst tclothfootwear tfurnishing ttransport pcinc_decile toinc_decile reg_pcdecile //2012
-	di "success4"	
-* Generate per capita variables, per capita decile totals, and shares of income and expenditure
-  foreach var in tssb tsubst ttotex toinc {
-	local lbl : variable label `var'
-	gen `var'_pc = `var' / fsize
-	label var `var'_pc         "`lbl' (per capita)"
-	bysort pcinc_decile: egen `var'_total_pc = total(`var'_pc)
-	label var `var'_total_pc   "`lbl' (by per capita income decile)"
-	gen `var'_share_exp = 100*`var' / ttotex
-	label var `var'_share_exp  "`lbl' (share of total expenditure)"
-	gen `var'_share_inc = 100*`var' / toinc
-	label var `var'_share_inc  "`lbl' (share of total income)"
-	//tabstat `var'_pc[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile)
-	}		
-di "success5	"	
+  cap keep   tssb tmilks tdnossb tfruits tconf tsweet tsubst w_regn-pcinc ttotex toinc tsugar thoney tcoffee tmineral agind sex-p4s tclothfootwear tfurnishing ttransport	//2015 and 2018
+  cap keep   w_regn-fsize ttotex toinc pcinc tsugar thoney tcoffee tmineral agind-pov_thresh pov_ind tssb-tsubst tclothfootwear tfurnishing ttransport pcinc_decile toinc_decile reg_pcdecile //2012
+		
 * Generate SSB indicator (dummy indicator)
   gen ssb_stat = (tssb>0) if !missing(tssb)
-	di "success6"
+	
 * Generate year variable
   gen year = `i'
   destring year, replace
   label var year "Year"
-	di "success7"
+	
 * Generate population weight from household weight 
   gen popw = rfact*fsize
   label var popw "Population weight"
-	di "success8"
+  egen rfactsum = total(rfact)
+
 * Destring variables
   cap destring w_prov, replace
   cap destring w_mun,  replace
@@ -200,7 +209,28 @@ di "success5	"
   cap destring w_ea,   replace
   cap destring w_shsn, replace
   cap destring w_hcn,  replace
-di "success9"
+  
+* Generate per capita variables, per capita decile totals, and shares of income and expenditure
+  foreach var in tssb tsubst ttotex toinc {
+	local lbl : variable label `var'
+	gen `var'_pc = `var' / fsize
+	label var `var'_pc         "`lbl' (per capita)"
+	bysort pcinc_decile: egen `var'_pc_dc = total(`var'_pc $weight)
+	replace `var'_pc_dc = `var'_pc_dc / rfactsum //turn off if not weighted
+	label var `var'_pc_dc   "`lbl' (by per capita income decile)"
+	gen `var'_exp = 100*`var' / ttotex
+	label var `var'_exp  "`lbl' (share of total expenditure)"
+	gen `var'_inc = 100*`var' / toinc
+	label var `var'_inc  "`lbl' (share of total income)" 
+	}
+  foreach var in tssb tsubst ttotex toinc {
+	gen `var'_exp_d   = 100* `var'_pc_dc/ttotex_pc_dc
+	label var `var'_exp_d "`lbl' (share of total expenditure by income decile)"
+	gen `var'_inc_d  = 100* `var'_pc_dc/toinc_pc_dc
+	label var `var'_inc_d "`lbl'(share of total expenditure by income decile)"
+	//tabstat `var'_pc [aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile)
+	}				
+
 * Create log of all variables
   quietly ds, has(type numeric) 
   quietly ds `r(varlist)', not(vallabel)
@@ -213,14 +243,14 @@ di "success9"
 	cap drop lnyear_built lnyear
 	cap drop lnsequence_no
 	cap drop lnw_prov
-	di "success10"
+	
 * Merge in identifiers for treatment and control groups
   merge m:1 w_prov using "$pricedata", generate(mergebyprov)
-di "success10"	
+	
 * Save analysis data
   save "$analysis/FIES_`i'_SSB.dta", replace
   local i = `i' + 3
-di "success11"	
+	
 	}
 
 * **********************************************************************
@@ -246,7 +276,7 @@ di "success11"
   foreach j in treat_513 treat_7 treat_10 treat_1316 {
 	forvalues i = 2009(3)2018 {
        use "$analysis/FIES_`i'_SSB.dta", clear
-       collapse (mean) tssb`i'=tssb tssb_share_exp`i'=tssb_share_exp tssb_share_inc`i'=tssb_share_inc, by("`j'")
+       collapse (mean) tssb`i'=tssb tssb_exp`i'=tssb_exp tssb_inc`i'=tssb_inc $weight, by("`j'")
        tempfile pta`i'`j'
        save `pta`i'`j''
 	}
@@ -256,19 +286,19 @@ di "success11"
 		save "$analysis/SSBmean_`j'.dta", replace 
 	}
 	use  "$analysis/SSBmean_`j'.dta"
-	reshape long tssb tssb_share_exp tssb_share_inc, i(`j') j(year)
-    reshape wide tssb tssb_share_exp tssb_share_inc, i(year) j(`j')
+	reshape long tssb tssb_exp tssb_inc, i(`j') j(year)
+    reshape wide tssb tssb_exp tssb_inc, i(year) j(`j')
 	label	var	tssb0	"Control"
     label	var	tssb1	"Treatment"
     label   var year    "Year"
-	label   var tssb_share_exp0 "Control"
-	label   var tssb_share_exp1 "Treatment"
-	label   var tssb_share_inc0 "Control"
-	label   var tssb_share_inc1 "Treatment"
+	label   var tssb_exp0 "Control"
+	label   var tssb_exp1 "Treatment"
+	label   var tssb_inc0 "Control"
+	label   var tssb_inc1 "Treatment"
     save "$analysis/SSBmean_`j'.dta", replace
   }
 
-* Create graphs for parallel trends for each treatment group definition
+* Create graphs for parallel trends for each treatment group definition // MOVE TO GRAPHS DO FILE
   local jgrp "treat_513 treat_7 treat_10 treat_1316"
   local kgrp "5.13 7 10 13.16"
   local n: word count `jgrp'
@@ -283,13 +313,13 @@ di "success11"
 	 note("Source: FIES")
 	graph save "$output/paralleltrends_ssb_`j'.gph", replace
 	
-	twoway connected tssb_share_exp0 tssb_share_exp1 year, ytitle(Percent) ///
+	twoway connected tssb_exp0 tssb_exp1 year, ytitle(Percent) ///
      title(SSB consumption as a share of household expenditure ) subtitle(Treatment: provinces with at least `k'% increase in SSB prices in 2018) ///
      ylabel(0.9(0.1)1.6) lpattern(longdash dot solid) ///
 	 note("Source: FIES")
 	graph save "$output/paralleltrends_ssbexp_`j'.gph", replace
 	
-	twoway connected tssb_share_inc0 tssb_share_inc1 year, ytitle(Percent) ///
+	twoway connected tssb_inc0 tssb_inc1 year, ytitle(Percent) ///
      title(SSB consumption as a share of household income ) subtitle(Treatment: provinces with at least `k'% increase in SSB prices in 2018) ///
      ylabel(0.9(0.1)1.6) lpattern(longdash dot solid) ///
 	 note("Source: FIES")
@@ -302,9 +332,7 @@ di "success11"
 	graph export "$output/paralleltrends_ssbexp_comb.png", replace 
 	graph combine "$output/paralleltrends_ssbinc_treat_513.gph" "$output/paralleltrends_ssbinc_treat_7.gph" "$output/paralleltrends_ssbinc_treat_10.gph" "$output/paralleltrends_ssbinc_treat_1316.gph", name("paralleltrends_ssbinc_comb", replace) ycommon iscale(0.75) title("SSB consumption as a share of income of treatment and control groups") 
 	graph export "$output/paralleltrends_ssbinc_comb.png", replace 
-	
-     
-//twoway (line tssb_share_exp0  tssb_share_exp1 year)
+//twoway (line tssb_exp0  tssb_exp1 year)
 
 * **********************************************************************
 * 4 - Create appended FIES 2009 to FIES 2018 (for pooled cross section)
