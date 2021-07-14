@@ -26,18 +26,21 @@
          wide noobs label nonote nomtitle nonumber                 ///
          title(Summary statistics\label{tab:sumStats}) replace
 
+		 /* FOR DELETIOn
 //generate share of income and exp spent on ssb per capita by decile
-gen ssb_share_d     = 100*ssb_total_pc/ttotex_total_pc
-gen ssb_shareinc_d  = 100*ssb_total_pc/toinc_total_pc
+gen ssb_share_d     = 100*ssb_pc_dc/ttotex_pc_dc
+gen ssb_shareinc_d  = 100*ssb_pc_dc/toinc_pc_dc
+*/ 
+
 
 //share of income/exp spent on ssb by decile
-tabstat ssb_share_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile) 
+tabstat ssb_shareexp_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile) 
 tabstat ssb_shareinc_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(pcinc_decile) 
 		 
 		 
   **** summary stats for treatment
   local treatment "treat_513 treat_7 treat_10 treat_1316"
-local ssbvar "ssb ssb_share_exp ssb_share_inc"
+local ssbvar "ssb ssb_exp ssb_inc"
 
 foreach v in `treatment' {
 		tabstat `ssbvar', stat(mean count) by(`v') }		
@@ -62,11 +65,9 @@ tabstat ttotex[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(decile)
 tabstat ssb[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(decile) 
 
 //ssb expenditure as a share of total expenditure by decile
-gen ssb_share_d = 100*ssb_total_d/exp_total_d
-tabstat ssb_share_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(decile) 
+tabstat ssb_shareexp_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(decile) 
 
 //ssb expenditure as a share of total income by decile
-gen ssb_shareinc_d = 100*ssb_total_d/inc_total_d
 tabstat ssb_shareinc_d[aw=rfact], stat(mean) format(%20.2fc) col(stat) by(decile) 
 
 //share of income/exp spent on ssb by decile
@@ -119,7 +120,19 @@ di r(sum)
 // did means table
 table treatment time, c(mean ssb)
 		 
-		 
+
+* Balance table
+  use "$analysis/FIES_20152018append_SSB.dta", clear
+global covs "tssb  lntssb  ttotex toinc pcinc tsubst urb agind fsize hgc occup age hhtype members" 
+eststo totsample: estpost summarize $covs
+eststo treatment: estpost summarize $covs if $treatment==1
+eststo control:   estpost summarize $covs if $treatment==0
+eststo groupdiff: estpost ttest     $covs, by $treatment
+esttab totsample treatment control groupdiff using "$output/table1.tex" , replace ///
+    cell( ///
+        mean(pattern(1 1 1 0) fmt(4)) & b(pattern(0 0 0 1) fmt(4)) ///
+        sd(pattern(1 1 1 0) fmt(4)) & se(pattern(0 0 0 1) fmt(2)) ///
+    ) mtitle("Full sample" "Training" "Control" "Difference (3)-(2)")
 		 
 * **********************************************************************
 * 2 - Make pretty graphs
@@ -130,7 +143,7 @@ set graphics off
 
 twoway scatter ssb_share     toinc_pc [aw=rfact] || qfitci ssb_share     toinc_pc
 graph export "$graphsfolder/ssb_share pcinc scatter2018.png"
-twoway scatter ssb_share_inc toinc_pc [aw=rfact] || qfitci ssb_share_inc toinc_pc
+twoway scatter ssb_inc toinc_pc [aw=rfact] || qfitci ssb_share_inc toinc_pc
 graph export "$graphsfolder/ssb_share_inc pcinc scatter2018.png"
 
 /*twoway( scatter ssb_share toinc_pc if pcinc_decile == 1, legend(label(1 "Decile 1"))) ///
@@ -340,8 +353,7 @@ graph combine temp3, saving("$graphfolder\price drop graph June 8cl.gph", replac
 graph combine temp4, saving("$graphfolder/inf_decjul18.gph", replace) 
 */
 
-
- spmap inf_dec18 using "$mapfolder/New map coordinates/PHL_1_coordinates.dta" , ///
+spmap inf_dec18 using "$mapfolder/New map coordinates/PHL_1_coordinates.dta" , ///
 	id(_ID) fcolor(green*1.9 green*1.1 green*.5  green red) osize(thin) ocolor( black black black black black) ///
 	title("Change in price of non-alcoholic beverages" "by province from Dec 2017 to Dec 2018") ///
 	name(temp5) nodraw clmethod(custom) clbreaks(-.01 .05 .07 .10 .13 .32)
