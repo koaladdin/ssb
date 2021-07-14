@@ -1,8 +1,8 @@
 * **********************************************************************
-* Project:          Project
-* Created:
-* Last modified:
-* Stata v.16.1
+* Project:          SSB tax in the Philippines
+* Created:          
+* Last modified:    12 July 2021
+* Stata v.15.1
 
 * Note: root folder set in Section 0
 *       edit $user    in line XX
@@ -19,6 +19,7 @@
 * **********************************************************************
 * 0 - Define root folder globals
 * **********************************************************************
+ 
     if "$user" == "et" {
         global myDocs "C:/Users/`c(username)'/Desktop/git"
 		if "`c(username)'"=="btje4229" {
@@ -29,25 +30,39 @@
 			global dropbox "C:/Users/Emilia/Dropbox"
 		}
     }
-    if "$user" == "yourName" {
-        global myDocs  "~/Dropbox"
-    }
-
+    if "$user" == "ak" {
+		if "`c(username)'"=="alko6017" {
+			global myDocs "\\Client\C$\Users\`c(username)'\Desktop\git"
+			global dropbox ///
+			"C:/Users/`c(username)'/Dropbox (Personal)"
+		}
+		else{
+			global myDocs  "/Users/aladdin/OneDrive/University of Sydney/ECON7010+7020 research dissertation/data stata"
+			global dropbox "/Users/aladdin/Dropbox (Sydney Uni Student)"
+		}
+   }
+   
 * **********************************************************************
 * 1 - Sub-directory globals
 * **********************************************************************
 * Create some sub-folder globals
-    global projectFolder          "$myDocs/MyTemplate"
+    global projectFolder          "$myDocs/SSBtaxPH"
     global dataWork               "${projectFolder}/dataWork"
     global data                   "${dataWork}/data"
+	global raw                    "${data}/raw"
+	global analysis               "${data}/analysis"
     global scripts                "${dataWork}/scripts"
     global logs                   "${scripts}/logs"
+	global output                 "${dataWork}/output"
 
 * Also create those directories if they don't exist already
     qui: capture mkdir      "${dataWork}"
     qui: capture mkdir      "${data}"
+	qui: capture mkdir      "${raw}"
+	qui: capture mkdir      "${analysis}"
     qui: capture mkdir      "${scripts}"
     qui: capture mkdir      "${logs}"
+    qui: capture mkdir      "${output}"
 
 * **********************************************************************
 * 2 - Change ado directory so packages get installed in
