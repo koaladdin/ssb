@@ -1,7 +1,7 @@
 * **********************************************************************
 * Project: SSB tax in the Philippines
 * Created: June 2021
-* Last modified 2021/06/29 by AK
+* Last modified 2021/07/30 by AK
 * Stata v.15.1
 * **********************************************************************
 * Imports price data and creates treatment and control groups
@@ -46,17 +46,26 @@
   replace inf_dec18 = davao if w_prov == 86 // Davao Occidental no separate price data, copy Davao del Sur
   
 * Generate treatment variables
-  gen treat_513  = inf_dec18>0.0513 if !missing(inf_dec18) // Philippines all items inflation
-  gen treat_7    = inf_dec18>0.07   if !missing(inf_dec18) // between the two
-  gen treat_10   = inf_dec18>0.10   if !missing(inf_dec18) // between the two 
-  gen treat_1316 = inf_dec18>0.1316 if !missing(inf_dec18) // Philippines non alcohol bev inflation
+  gen tr513  = inf_dec18>0.0513 if !missing(inf_dec18) // Philippines all items inflation
+  gen tr7    = inf_dec18>0.07   if !missing(inf_dec18) // between the two
+  gen tr10   = inf_dec18>0.10   if !missing(inf_dec18) // between the two 
+  gen tr1316 = inf_dec18>0.1316 if !missing(inf_dec18) // Philippines non alcohol bev inflation
  
 * Label treatment variables
-  label define treat_ssb 0 "control" 1 "treatment"
-  foreach v in "treat_513 treat_7 treat_10 treat_1316" {
-	label values `v' treat_ssb
-	//label variable ``v''
-  }
+  label variable tr513  "treatment defined at 5%"
+  label variable tr7    "treatment defined at 7%"
+  label variable tr10   "treatment defined at 10%"
+  label variable tr1316 "treatment defined at 13%"  
+  
+  label define treat_513  0 "control" 1 "treatment 5%"
+  label define treat_7    0 "control" 1 "treatment 7%"
+  label define treat_10   0 "control" 1 "treatment 10%"
+  label define treat_1316 0 "control" 1 "treatment 13%"
+  
+  label values tr513  treat_513
+  label values tr7    treat_7
+  label values tr10   treat_10
+  label values tr1316 treat_1316
 
 * Drop non-province PSGC level data
   drop if w_prov==.

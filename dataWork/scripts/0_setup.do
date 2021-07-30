@@ -4,11 +4,11 @@
 
 * Dependencies
 	* add required packages/commands
-    local ssc_install   "estout winsor2 spmap sepscatter lgraph kmatch reghdfe ftools"
+    local ssc_install   "estout spmap sepscatter reghdfe ftools ietoolkit"
 	local net_install   "speccurve" 
     local userpack      "StataConfig"
     local styles        "blindschemes"
-	
+	//winsor2 kmatch psmatch2
 * TO DO:
 
 * **********************************************************************
