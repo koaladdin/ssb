@@ -55,7 +55,7 @@
    */
    
 * Run DiD regression in a loop for all variables  
-  global sets "ssbvar subsvar placebo lnssbvar lnsubsvar lnplacebo"
+  global sets "ssbvar" // subsvar placebo lnssbvar lnsubsvar lnplacebo"
   foreach k in $sets {
 	eststo clear
 	foreach i in $`k' {
@@ -96,7 +96,7 @@
 			mtitles("base" "w/covars" "prov fe" "w/covars") 
 		}
 	  }
-	* Generate a table for each variable of interest for the main table       
+	* Generate a table for each variable of interest for the main table  
 	  foreach i in $`k' {
 		 cap erase "$output/tables/main_`i'.tex"
 		 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
@@ -104,14 +104,15 @@
 			drop(*) ///
 			mtitles("base" "w/covars" "prov fe" "w/covars") ///
 			noobs nobaselevels nonote ///
-			prehead( `"\begin{table}[htbp]"' ///
+			prehead( `"\begin{table}[htb]"' ///
 			`"\centering"' ///
+			`"\singlespacing"' ///
 			`"\hspace*{-1.2cm}"' ///
 			`"\begin{threeparttable}"' ///
 			`"\caption{Impact of SSB tax on `: var label `i''}"' ///
 			`"\label{tab:`i'}"' ///
 			`"\begin{tabular}{l cccc}"' ///
-			`"\hline"' `"\hline"') ///
+			`"\toprule"') /
 			postfoot(`""') 
 	  }
 	 foreach i in $`k' {
@@ -120,10 +121,10 @@
 			using "$output/tables/main_`i'.tex", append ///
 			keep( *.time#*`j' ) ///
 			starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-			nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-			eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-			prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-			postfoot("& & & & \\" `"\hline"') ///
+			nobaselevels noomitted nonote noobs nolines  nonumbers interaction(" x ")   ///
+			 label ///
+			prehead( `"\midrule"' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
+			postfoot(`" "') 
 	// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
 	// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
 		} 
@@ -133,361 +134,15 @@
 			using "$output/tables/main_`i'.tex", append ///
 			drop(*) ///
 			nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-			eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-			prehead(`""') mlabels(none) collabels(none) ///
+			label ///
+			prehead(`"\bottomrule"') mlabels(none) collabels(none) ///
 			s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-			postfoot(`"\hline"' `"\hline"' ///
-			`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
-	  }
-	  
+			postfoot(`"\bottomrule"' ///
+			`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"')
+	  } 
   }
- 
- 
-  eststo clear	
-* Run DiD regression for ssb and substitutes	(levels)     
-  foreach i in $ssbvar $subsvar {
-	foreach j in $treatment { 
-		quietly eststo provc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight             , absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace		
-				cap drop sample
-				generate sample = e(sample)
-		quietly eststo nofec`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight if sample==1, noabsorb         vce(cluster w_prov) 
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		quietly eststo prov`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace	
-		quietly eststo nofe`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, noabsorb         vce(cluster w_prov)
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		//eststo urb`i'`j':  reghdfe `i' i.time##i.`j' $weight , absorb(urb)         vce(cluster w_prov) 
-		//quietly eststo urpr`i'`j': reghdfe `i' i.time##i.`j' $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//quietly eststo urprc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//margins time#`j' // expected SSB consumption for each group in each time period
-		//margins `j', dydx(time) // change in SSB consumption in 2015 and 2018 for each group
-	}
-  } 
-* Delete the tables if they already exist	(levels)	
-  foreach i in $ssbvar $subsvar {
-	 cap erase "$output/tables/did_`i'.tex"
-  }
-* Generate a complete table for each variable of interest for the appendix
-  foreach i in $ssbvar $subsvar {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/did_`i'.tex", append ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote interaction(" x ")  label ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") 
-	}
-  }
-* Generate a table for each variable of interest for the main table       
-  foreach i in $ssbvar $subsvar {
-	 cap erase "$output/tables/main_`i'.tex"
-	 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-		noobs nobaselevels nonote ///
-		prehead( `"\begin{table}[htbp]"' ///
-		`"\centering"' ///
-		`"\hspace*{-1.2cm}"' ///
-		`"\begin{threeparttable}"' ///
-		`"\caption{Impact of SSB tax on `: var label `i''}"' ///
-		`"\label{tab:`i'}"' ///
-		`"\begin{tabular}{l cccc}"' ///
-		`"\hline"' `"\hline"') ///
-		postfoot(`""') 
-  }
-  foreach i in $ssbvar $subsvar {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/main_`i'.tex", append ///
-		keep( *.time#*`j' ) ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-		prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot("& & & & \\" `"\hline"') ///
-// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-	} 
-  }
-foreach i in $ssbvar $subsvar {
-	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-		prehead(`""') mlabels(none) collabels(none) ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		postfoot(`"\hline"' `"\hline"' ///
-		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
-  }
+  
 
-* **********************************************************************
-* 1a - Pooled OLS on levels - 2015 and 2018 placebo
-* **********************************************************************
-  eststo clear
-* Run DiD regression for placebo (levels)
-  foreach i in $placebo  {
-	foreach j in $treatment { 
-		quietly eststo provc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight             , absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace		
-				cap drop sample
-				generate sample = e(sample)
-		quietly eststo nofec`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight if sample==1, noabsorb         vce(cluster w_prov) 
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		quietly eststo prov`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace	
-		quietly eststo nofe`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, noabsorb         vce(cluster w_prov)
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		//eststo urb`i'`j':  reghdfe `i' i.time##i.`j' $weight , absorb(urb)         vce(cluster w_prov) 
-		//quietly eststo urpr`i'`j': reghdfe `i' i.time##i.`j' $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//quietly eststo urprc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//margins time#`j' // expected SSB consumption for each group in each time period
-		//margins `j', dydx(time) // change in SSB consumption in 2015 and 2018 for each group
-	}
-  }   
-* Delete the tables if they already exist	(levels)	
-  foreach i in $placebo {
-	 cap erase "$output/tables/did_`i'.tex"
-  }  
-* Generate a complete table for each variable of interest for the appendix
-  foreach i in  $placebo {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/did_`i'.tex", append ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote interaction(" x ") label ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars" ) ///
-		//booktabs postfoot("& & & & \\" `"\hline"') ///
-	}
-  }
-* Generate a table for each variable of interest for the main table       
-  foreach i in $placebo {
-	 cap erase "$output/tables/main_`i'.tex"
-	 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-		noobs nobaselevels nonote ///
-		prehead( `"\begin{table}[htbp]"' ///
-		`"\centering"' ///
-		`"\hspace*{-1.2cm}"' ///
-		`"\begin{threeparttable}"' ///
-		`"\caption{Impact of SSB tax on `: var label `i''}"' ///
-		`"\label{tab:`i'}"' ///
-		`"\begin{tabular}{l cccc}"' ///
-		`"\hline"' `"\hline"') ///
-		postfoot(`""') 
-  }
-  foreach i in $placebo {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/main_`i'.tex", append ///
-		keep( *.time#*`j' ) ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-		prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot("& & & & \\" `"\hline"') ///
-// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-	} 
-  }
-foreach i in $placebo {
-	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-		prehead(`""') mlabels(none) collabels(none) ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		postfoot(`"\hline"' `"\hline"' ///
-		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
-  }
-  
-* **********************************************************************
-* 1b - Pooled OLS on logs - 2015 and 2018 - lnssb lnsubs
-* **********************************************************************
-  eststo clear 
-* Run DiD regression for ssb and subst with using reghdfe	(log)
-   foreach i in $lnssbvar $lnsubsvar {
-	foreach j in $treatment { 
-		quietly eststo provc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight             , absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace		
-				cap drop sample
-				generate sample = e(sample)
-		quietly eststo nofec`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight if sample==1, noabsorb         vce(cluster w_prov) 
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		quietly eststo prov`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace	
-		quietly eststo nofe`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, noabsorb         vce(cluster w_prov)
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		//eststo urb`i'`j':  reghdfe `i' i.time##i.`j' $weight , absorb(urb)         vce(cluster w_prov) 
-		//quietly eststo urpr`i'`j': reghdfe `i' i.time##i.`j' $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//quietly eststo urprc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//margins time#`j' // expected SSB consumption for each group in each time period
-		//margins `j', dydx(time) // change in SSB consumption in 2015 and 2018 for each group
-	}
-  } 
-* Delete the tables if they already exist		
-  foreach i in $lnssbvar $lnsubsvar {
-	 cap erase "$output/tables/did_`i'.tex"
-  }
-* Generate a complete table for each variable of interest for the appendix
-  foreach i in $lnssbvar $lnsubsvar {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/did_`i'.tex", append ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		nobaselevels noomitted nonote interaction(" x ") label ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-	}
-  }
- * Generate a table for each variable of interest for the main table       
-  foreach i in $lnssbvar $lnsubsvar {
-	 cap erase "$output/tables/main_`i'.tex"
-	 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-		noobs nobaselevels nonote ///
-		prehead( `"\begin{table}[htbp]"' ///
-		`"\centering"' ///
-		`"\hspace*{-1.2cm}"' ///
-		`"\begin{threeparttable}"' ///
-		`"\caption{Impact of SSB tax on `: var label `i''}"' ///
-		`"\label{tab:`i'}"' ///
-		`"\begin{tabular}{l cccc}"' ///
-		`"\hline"' `"\hline"') ///
-		postfoot(`""') 
-  }
-  foreach i in $lnssbvar $lnsubsvar {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/main_`i'.tex", append ///
-		keep( *.time#*`j' ) ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-		prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot("& & & & \\" `"\hline"') ///
-// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-	} 
-  }
-foreach i in $lnssbvar $lnsubsvar {
-	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-		prehead(`""') mlabels(none) collabels(none) ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		postfoot(`"\hline"' `"\hline"' ///
-		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
-  } 
- 
-* **********************************************************************
-* 1b - Pooled OLS on logs - 2015 and 2018 - ln placebo
-* **********************************************************************
-  eststo clear
-* Run DiD regression for placebo with using reghdfe	(log)
-  foreach i in $lnplacebo  {
-	foreach j in $treatment {  
-		quietly eststo provc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight             , absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace		
-				cap drop sample
-				generate sample = e(sample)
-		quietly eststo nofec`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight if sample==1, noabsorb         vce(cluster w_prov) 
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		quietly eststo prov`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, absorb(w_prov)   vce(cluster w_prov)
-			quietly estadd local fixedp "Yes", replace
-			quietly estadd ysumm, replace	
-		quietly eststo nofe`i'`j':  reghdfe `i' i.time##i.`j'         $weight if sample==1, noabsorb         vce(cluster w_prov)
-			quietly estadd local fixedp "No", replace
-			quietly estadd ysumm, replace		
-		//eststo urb`i'`j':  reghdfe `i' i.time##i.`j' $weight , absorb(urb)         vce(cluster w_prov) 
-		//quietly eststo urpr`i'`j': reghdfe `i' i.time##i.`j' $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//quietly eststo urprc`i'`j': reghdfe `i' i.time##i.`j' $covar1 $weight , absorb(urb w_prov) vce(cluster w_prov) 	
-		//margins time#`j' // expected SSB consumption for each group in each time period
-		//margins `j', dydx(time) // change in SSB consumption in 2015 and 2018 for each group
-	}
-}
-* Delete the tables if they already exist		
-  foreach i in $lnplacebo  {
-	 cap erase "$output/tables/did_`i'.tex"
-  }
-* Generate a complete table for each variable of interest for the appendix
-  foreach i in $lnplacebo  {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/did_`i'.tex", append ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		nobaselevels noomitted nonote interaction(" x ") label ///
-		mtitles("base" "w/covars" "prov fe" "w/covars" ) ///
-	}
-  }
-   foreach i in $lnplacebo{
-	 cap erase "$output/tables/main_`i'.tex"
-	 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-		noobs nobaselevels nonote ///
-		prehead( `"\begin{table}[htbp]"' ///
-		`"\centering"' ///
-		`"\hspace*{-1.2cm}"' ///
-		`"\begin{threeparttable}"' ///
-		`"\caption{Impact of SSB tax on `: var label `i''}"' ///
-		`"\label{tab:`i'}"' ///
-		`"\begin{tabular}{l cccc}"' ///
-		`"\hline"' `"\hline"') ///
-		postfoot(`""') 
-  }
-  foreach i in $lnplacebo {
-	foreach j in $treatment { 
-	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/main_`i'.tex", append ///
-		keep( *.time#*`j' ) ///
-		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-		prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot("& & & & \\" `"\hline"') ///
-// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-	} 
-  }
-foreach i in $lnplacebo {
-	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
-		drop(*) ///
-		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-		prehead(`""') mlabels(none) collabels(none) ///
-		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		postfoot(`"\hline"' `"\hline"' ///
-		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
-  } 
-  
 * **********************************************************************
 * 2 - Pooled OLS - 2012 and 2015 -> placebo regression
 * **********************************************************************
@@ -495,11 +150,7 @@ foreach i in $lnplacebo {
 
 * Use the proper file and rename treatments so they dont exceed var name limit
   use "$analysis/FIES_20122015append_SSB.dta", clear
-  rename  treat_513  tr513
-  rename  treat_7    tr7
-  rename  treat_10   tr10
-  rename  treat_1316 tr1316
-
+  
   eststo clear
   * Run DiD regression for ssb and substitutes	(levels)
   foreach i in $ssbvar $lnssbvar {
@@ -537,52 +188,65 @@ foreach i in $lnplacebo {
 		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
 		nobaselevels noomitted nonote interaction(" x ") label ///
 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		mtitles("base" "w/covars" "prov fe" "w/covars") ///
+		mtitles("base" "w/covars" "prov fe" "w/covars") 
 	}
   }
 * Generate a table for each variable of interest for the main table       
-  foreach i in $ssbvar $subsvar {
-	 cap erase "$output/tables/main_`i'.tex"
+  foreach i in $ssbvar $lnssbvar {
+	 cap erase "$output/tables/main_p`i'.tex"
 	 esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
+		using "$output/tables/main_p`i'.tex", append ///
 		drop(*) ///
 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
 		noobs nobaselevels nonote ///
-		prehead( `"\begin{table}[htbp]"' ///
+		prehead( `"\begin{table}[htb]"' ///
 		`"\centering"' ///
+		`"\singlespacing"' ///
 		`"\hspace*{-1.2cm}"' ///
 		`"\begin{threeparttable}"' ///
-		`"\caption{Impact of SSB tax on `: var label `i''}"' ///
+		`"\caption{Placebo impact of SSB tax on `: var label `i''}"' ///
 		`"\label{tab:`i'}"' ///
 		`"\begin{tabular}{l cccc}"' ///
-		`"\hline"' `"\hline"') ///
+		`"\toprule"') ///
 		postfoot(`""') 
   }
-  foreach i in $ssbvar $subsvar {
+  foreach i in $ssbvar $lnssbvar {
 	foreach j in $treatment { 
 	  esttab nofe`i'`j' nofec`i'`j' prov`i'`j' provc`i'`j' ///
-		using "$output/tables/main_`i'.tex", append ///
+		using "$output/tables/main_p`i'.tex", append ///
 		keep( *.time#*`j' ) ///
 		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines  ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}"))  label ///
-		prehead( `""' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot("& & & & \\" `"\hline"') ///
+		nobaselevels noomitted nonote noobs interaction(" x ") nolines nonumbers ///
+		 label ///
+		prehead( `"\midrule"' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
+		postfoot(`" "') ///
 // 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
 // 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
 	} 
   }
-foreach i in $ssbvar $subsvar {
+foreach i in $ssbvar $lnssbvar {
 	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
-		using "$output/tables/main_`i'.tex", append ///
+		using "$output/tables/main_p`i'.tex", append ///
 		drop(*) ///
 		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
-		eqlabels(, prefix("\multicolumn{1}{c}{") suffix ("}")) label ///
-		prehead(`""') mlabels(none) collabels(none) ///
+		label ///
+		prehead(`"\bottomrule"') mlabels(none) collabels(none) ///
 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
-		postfoot(`"\hline"' `"\hline"' ///
+		postfoot(`"\bottomrule"' ///
 		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
   }  
+  
+* Copy regression tables to Overleaf
+  * Grab filenames in output/tables
+  local tables : dir "$dataWork/output/tables" files *
+
+* Loop over all files in outputs/tables
+  foreach filename of local tables {
+    copy        "$dataWork/output/tables/`filename'"             ///
+                "$dropbox/Apps/Overleaf/SSB-thesis/tables/`filename'"  ///
+                , replace
+  }
+  
 * **********************************************************************
 * 3 - Propensity score matching  --> FINISH THE DIFF AND DIFF FIRST. including the paper
 * **********************************************************************

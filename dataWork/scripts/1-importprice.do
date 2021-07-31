@@ -52,15 +52,15 @@
   gen tr1316 = inf_dec18>0.1316 if !missing(inf_dec18) // Philippines non alcohol bev inflation
  
 * Label treatment variables
-  label variable tr513  "treatment defined at 5%"
-  label variable tr7    "treatment defined at 7%"
-  label variable tr10   "treatment defined at 10%"
-  label variable tr1316 "treatment defined at 13%"  
+  label variable tr513  "treatment defined at 5 percent"
+  label variable tr7    "treatment defined at 7 percent"
+  label variable tr10   "treatment defined at 10 percent"
+  label variable tr1316 "treatment defined at 13 percent"  
   
-  label define treat_513  0 "control" 1 "treatment 5%"
-  label define treat_7    0 "control" 1 "treatment 7%"
-  label define treat_10   0 "control" 1 "treatment 10%"
-  label define treat_1316 0 "control" 1 "treatment 13%"
+  label define treat_513  0 "control" 1 "treatment 5 percent"
+  label define treat_7    0 "control" 1 "treatment 7 percent"
+  label define treat_10   0 "control" 1 "treatment 10 percent"
+  label define treat_1316 0 "control" 1 "treatment 13 percent"
   
   label values tr513  treat_513
   label values tr7    treat_7
