@@ -155,7 +155,9 @@ table treatment time, c(mean ssb)
 * 1x  - Balance table
 * **********************************************************************
 		 
-
+* count of provinces per treatment type
+  
+		 
 * Balance table
   use "$analysis/FIES_20152018append_SSB.dta", clear
   global vars "tssb  lntssb tsubst ttotex thealth toinc pcinc urb agind fsize  ageless5 age5_17 age num_bed sex" 

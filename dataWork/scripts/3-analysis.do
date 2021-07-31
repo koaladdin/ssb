@@ -55,7 +55,7 @@
    */
    
 * Run DiD regression in a loop for all variables  
-  global sets "ssbvar" // subsvar placebo lnssbvar lnsubsvar lnplacebo"
+  global sets "ssbvar subsvar placebo lnssbvar lnsubsvar lnplacebo"
   foreach k in $sets {
 	eststo clear
 	foreach i in $`k' {
@@ -103,7 +103,7 @@
 			using "$output/tables/main_`i'.tex", append ///
 			drop(*) ///
 			mtitles("base" "w/covars" "prov fe" "w/covars") ///
-			noobs nobaselevels nonote ///
+			noobs nobaselevels nonote nolines nogaps ///
 			prehead( `"\begin{table}[htb]"' ///
 			`"\centering"' ///
 			`"\singlespacing"' ///
@@ -112,8 +112,8 @@
 			`"\caption{Impact of SSB tax on `: var label `i''}"' ///
 			`"\label{tab:`i'}"' ///
 			`"\begin{tabular}{l cccc}"' ///
-			`"\toprule"') /
-			postfoot(`""') 
+			`"\toprule"') ///
+			postfoot(`" "') 
 	  }
 	 foreach i in $`k' {
 		foreach j in $treatment { 
@@ -121,9 +121,9 @@
 			using "$output/tables/main_`i'.tex", append ///
 			keep( *.time#*`j' ) ///
 			starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-			nobaselevels noomitted nonote noobs nolines  nonumbers interaction(" x ")   ///
+			nobaselevels noomitted nonote noobs nolines  nonumbers nogaps interaction(" x ")   ///
 			 label ///
-			prehead( `"\midrule"' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
+			prehead( `"\midrule"' ) mlabels(none) collabels(none) eqlabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
 			postfoot(`" "') 
 	// 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
 	// 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
@@ -133,7 +133,7 @@
 		esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
 			using "$output/tables/main_`i'.tex", append ///
 			drop(*) ///
-			nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
+			nobaselevels noomitted nonote noobs nomtitles nolines nogaps nonumbers interaction(" x ")   ///
 			label ///
 			prehead(`"\bottomrule"') mlabels(none) collabels(none) ///
 			s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
@@ -198,7 +198,7 @@
 		using "$output/tables/main_p`i'.tex", append ///
 		drop(*) ///
 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
-		noobs nobaselevels nonote ///
+		noobs nobaselevels nonote nolines nogaps ///
 		prehead( `"\begin{table}[htb]"' ///
 		`"\centering"' ///
 		`"\singlespacing"' ///
@@ -208,7 +208,7 @@
 		`"\label{tab:`i'}"' ///
 		`"\begin{tabular}{l cccc}"' ///
 		`"\toprule"') ///
-		postfoot(`""') 
+		postfoot(`" "') 
   }
   foreach i in $ssbvar $lnssbvar {
 	foreach j in $treatment { 
@@ -216,10 +216,10 @@
 		using "$output/tables/main_p`i'.tex", append ///
 		keep( *.time#*`j' ) ///
 		starlevels(* .1 ** .05 *** .01) se ar2 b(a2)  ///
-		nobaselevels noomitted nonote noobs interaction(" x ") nolines nonumbers ///
-		 label ///
-		prehead( `"\midrule"' ) mlabels(none) collabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
-		postfoot(`" "') ///
+		nobaselevels noomitted nonote noobs nolines  nonumbers nogaps interaction(" x ")   ///
+			 label ///
+		prehead( `"\midrule"' ) mlabels(none) collabels(none) eqlabels(none) refcat(*.time#*.`j' "`: var label `j''") ///
+		postfoot(`" "') 
 // 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
 // 		mtitles("base" "w/covars" "prov fe" "w/covars") ///
 	} 
@@ -228,7 +228,7 @@ foreach i in $ssbvar $lnssbvar {
 	esttab nofe`i'tr7 nofec`i'tr7 prov`i'tr7 provc`i'tr7 ///
 		using "$output/tables/main_p`i'.tex", append ///
 		drop(*) ///
-		nobaselevels noomitted nonote noobs nomtitles interaction(" x ")   ///
+		nobaselevels noomitted nonote noobs nomtitles nolines nogaps nonumbers interaction(" x ")   ///
 		label ///
 		prehead(`"\bottomrule"') mlabels(none) collabels(none) ///
 		s(fixedp N ymean,label("Province FE" "Observations" "Mean of Dep. Variable")) ///
@@ -236,6 +236,8 @@ foreach i in $ssbvar $lnssbvar {
 		`"\end{tabular}"' `"\end{threeparttable}"' `"\end{table}"') 
   }  
   
+ 
+	
 * Copy regression tables to Overleaf
   * Grab filenames in output/tables
   local tables : dir "$dataWork/output/tables" files *

@@ -13,8 +13,8 @@
 	global maps                   "${data}/maps"
 	
 	//use "$analysis/FIES_2015_SSB.dta", clear
-	//use "$analysis/FIES_20152018append_SSB.dta", clear
-	use "$analysis/FIES_2018_SSB.dta", clear
+	use "$analysis/FIES_20152018append_SSB.dta", clear
+	//use "$analysis/FIES_2018_SSB.dta", clear
 
 	/*
 ** psmatch and lpscore following Emilia's pset	- 2015 only!

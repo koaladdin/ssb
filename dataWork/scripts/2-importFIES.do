@@ -280,7 +280,7 @@ global weight = "[aw=rfact]"
 * emilia's comment on not doing solid lines
 * should I be weighting by rfact? 
 
-  foreach j in treat_513 treat_7 treat_10 treat_1316 {
+  foreach j in tr513 tr7 tr10 tr1316 {
 	forvalues i = 2009(3)2018 {
        use "$analysis/FIES_`i'_SSB.dta", clear
        collapse (mean) tssb`i'=tssb tssb_exp`i'=tssb_exp tssb_inc`i'=tssb_inc $weight, by("`j'")
