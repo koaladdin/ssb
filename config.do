@@ -54,6 +54,9 @@
     global scripts                "${dataWork}/scripts"
     global logs                   "${scripts}/logs"
 	global output                 "${dataWork}/output"
+	global tables                 "${output}/tables"
+	global graphs                 "${output}/graphs"
+	global maps                   "${data}/maps"
 
 * Also create those directories if they don't exist already
     qui: capture mkdir      "${dataWork}"
@@ -63,6 +66,10 @@
     qui: capture mkdir      "${scripts}"
     qui: capture mkdir      "${logs}"
     qui: capture mkdir      "${output}"
+	qui: capture mkdir      "${tables}"
+	qui: capture mkdir      "${graphs}"
+	qui: capture mkdir      "${graphs}"
+	qui: capture mkdir      "${maps}"
 
 * **********************************************************************
 * 2 - Change ado directory so packages get installed in
