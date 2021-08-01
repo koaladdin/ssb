@@ -49,10 +49,10 @@
 * 3 - Analyze data 
 * **********************************************************************
 
-*  include ${scripts}/3_analysis.do     
+  include ${scripts}/3_analysis.do     
 
 * **********************************************************************
 * 4 - Create graphs and charts
 * **********************************************************************
 
-* include ${scripts}/4_graphs.do    
+ include ${scripts}/4_graphs.do    
